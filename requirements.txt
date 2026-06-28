@@ -3,3 +3,7 @@ geopandas
 matplotlib
 shapely
 fiona
+pandas
+geopandas
+fiona
+folium
