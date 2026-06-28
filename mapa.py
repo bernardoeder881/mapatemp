@@ -9,8 +9,8 @@ import fiona
 fiona.drvsupport.supported_drivers['KML'] = 'rw'
 
 def gerar_mapa_html():
-    csv_file = 'Temp Máx e Umi Mín.xlsx - Página1.csv'
-    kmz_file = 'Cidades RJ.kmz'
+    csv_file = 'dados.csv'
+    kmz_file = 'cidades.kmz'
     output_html = 'mapa_severidade_rj.html'
 
     print("Extraindo KML do KMZ...")
