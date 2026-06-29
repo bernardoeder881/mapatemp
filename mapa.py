@@ -70,7 +70,39 @@ def gerar_mapa_html():
         nivel = str(row['Nível de Severidade Meteorológica']).strip()
         cor = cores.get(nivel, '#34495E') # Cor padrão caso não encontre
         
-        # Estrutura do pop-up (exibido ao clicar)
+        # Estrutura do pop-up (exibido ao clicar) - O f-string precisa das aspas duplas no início e fim
         popup_html = f"""
         <div style="font-family: Arial; min-width: 150px;">
-            <h4 style="margin-top: 0
+            <h4 style="margin-top: 0; color: #2C3E50;">{row['Estação']}</h4>
+            <b>Temp. Máxima:</b> {row['Temperatura Máxima (°C)']} °C<br>
+            <b>Umidade Mínima:</b> {row['Umidade Mínima (%)']}%<br>
+            <b>Severidade:</b> <span style="color: {cor}; font-weight: bold;">{nivel}</span>
+        </div>
+        """
+        
+        # Texto que ficará permanentemente na tela
+        texto_permanente = f"<div style='font-size: 11px; font-weight: bold; color: #2C3E50;'>{row['Temperatura Máxima (°C)']}°C | {row['Umidade Mínima (%)']}%</div>"
+        
+        folium.CircleMarker(
+            location=[row['Latitude'], row['Longitude']],
+            radius=8,
+            popup=folium.Popup(popup_html, max_width=300),
+            tooltip=folium.Tooltip(
+                texto_permanente, 
+                permanent=True, 
+                direction='right',
+                opacity=0.8
+            ),
+            color='black',
+            weight=1,
+            fill=True,
+            fill_color=cor,
+            fill_opacity=0.9
+        ).add_to(mapa)
+
+    # Inserção da Legenda Flutuante via HTML customizado
+    legenda_html = '''
+    <div style="position: fixed; 
+         bottom: 30px; right: 30px; width: 150px; height: 190px; 
+         background-color: rgba(255, 255, 255, 0.9); border: 2px solid #BDC3C7; z-index:9999; font-size:12px; font-family: Arial;
+         padding:
