@@ -65,12 +65,12 @@ def gerar_mapa_html():
         'Crítico': '#922B21'
     }
 
-    # Adicionar os marcadores de cada estação ao mapa com o texto permanente
+    # Adicionar os marcadores de cada estação ao mapa
     for idx, row in df.iterrows():
         nivel = str(row['Nível de Severidade Meteorológica']).strip()
         cor = cores.get(nivel, '#34495E') # Cor padrão caso não encontre
         
-        # Estrutura do pop-up (exibido ao clicar) - O f-string precisa das aspas duplas no início e fim
+        # Estrutura do pop-up
         popup_html = f"""
         <div style="font-family: Arial; min-width: 150px;">
             <h4 style="margin-top: 0; color: #2C3E50;">{row['Estação']}</h4>
@@ -80,19 +80,11 @@ def gerar_mapa_html():
         </div>
         """
         
-        # Texto que ficará permanentemente na tela
-        texto_permanente = f"<div style='font-size: 11px; font-weight: bold; color: #2C3E50;'>{row['Temperatura Máxima (°C)']}°C | {row['Umidade Mínima (%)']}%</div>"
-        
         folium.CircleMarker(
             location=[row['Latitude'], row['Longitude']],
             radius=8,
             popup=folium.Popup(popup_html, max_width=300),
-            tooltip=folium.Tooltip(
-                texto_permanente, 
-                permanent=True, 
-                direction='right',
-                opacity=0.8
-            ),
+            tooltip=row['Estação'],
             color='black',
             weight=1,
             fill=True,
@@ -105,4 +97,40 @@ def gerar_mapa_html():
     <div style="position: fixed; 
          bottom: 30px; right: 30px; width: 150px; height: 190px; 
          background-color: rgba(255, 255, 255, 0.9); border: 2px solid #BDC3C7; z-index:9999; font-size:12px; font-family: Arial;
-         padding:
+         padding: 12px; border-radius: 8px; box-shadow: 2px 2px 10px rgba(0,0,0,0.2);">
+         <b style="font-size: 13px;">Severidade</b><br><br>
+         <i style="background:#2ECC71; width: 14px; height: 14px; float: left; margin-right: 8px; border: 1px solid black; border-radius: 50%;"></i>Muito Baixo<br><br>
+         <i style="background:#3498DB; width: 14px; height: 14px; float: left; margin-right: 8px; border: 1px solid black; border-radius: 50%;"></i>Baixo<br><br>
+         <i style="background:#F1C40F; width: 14px; height: 14px; float: left; margin-right: 8px; border: 1px solid black; border-radius: 50%;"></i>Moderado<br><br>
+         <i style="background:#E67E22; width: 14px; height: 14px; float: left; margin-right: 8px; border: 1px solid black; border-radius: 50%;"></i>Alto<br><br>
+         <i style="background:#E74C3C; width: 14px; height: 14px; float: left; margin-right: 8px; border: 1px solid black; border-radius: 50%;"></i>Muito Alto<br><br>
+         <i style="background:#922B21; width: 14px; height: 14px; float: left; margin-right: 8px; border: 1px solid black; border-radius: 50%;"></i>Crítico
+    </div>
+    '''
+    mapa.get_root().html.add_child(folium.Element(legenda_html))
+
+    mapa.save(output_html)
+    
+    # Limpeza do ficheiro KML temporário
+    if os.path.exists(kml_extracted):
+        os.remove(kml_extracted)
+
+if __name__ == "__main__":
+    # Configura a página para usar a largura total (opcional, mas fica melhor para mapas)
+    st.set_page_config(layout="wide", page_title="Mapa de Severidade RJ")
+    
+    st.title("Mapa de Severidade Meteorológica - RJ")
+    
+    # Mostra um indicador visual enquanto o mapa é gerado nos bastidores
+    with st.spinner("Processando dados e gerando o mapa..."):
+        gerar_mapa_html()
+    
+    # Caminho onde o arquivo HTML foi salvo
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    output_html = os.path.join(current_dir, "mapa_severidade_rj.html")
+    
+    # Lê o HTML e renderiza na tela
+    with open(output_html, "r", encoding="utf-8") as f:
+        mapa_html = f.read()
+        
+    components.html(mapa_html, height=700)
