@@ -4,13 +4,15 @@ import pandas as pd
 import geopandas as gpd
 import folium
 import fiona
+import streamlit as st
+import streamlit.components.v1 as components
 
 # Habilitar o suporte de leitura e escrita para KML/KMZ no fiona
 fiona.drvsupport.supported_drivers['KML'] = 'rw'
 fiona.drvsupport.supported_drivers['LIBKML'] = 'rw'
 
 def gerar_mapa_html():
-    # 1. Resolver caminhos absolutos (ótimo para evitar erros na nuvem)
+    # 1. Resolver caminhos absolutos (evita erros de "File Not Found" na nuvem)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     
     # Nomes reais dos seus arquivos
@@ -18,10 +20,7 @@ def gerar_mapa_html():
     kmz_file = os.path.join(current_dir, "cidades.kmz")
     output_html = os.path.join(current_dir, "mapa_severidade_rj.html")
 
-    print(f"Buscando Excel em: {excel_file}")
-    
     # 2. Extração do KMZ
-    print("Extraindo KML do KMZ...")
     kml_extracted = os.path.join(current_dir, 'doc.kml')
     with zipfile.ZipFile(kmz_file, 'r') as zip_ref:
         kml_files = [f for f in zip_ref.namelist() if f.endswith('.kml')]
@@ -33,11 +32,9 @@ def gerar_mapa_html():
             raise FileNotFoundError("Arquivo KML não encontrado dentro do KMZ.")
 
     # 3. Carregar limites municipais
-    print("Carregando limites municipais...")
     gdf_municipios = gpd.read_file(kml_extracted, driver='KML')
 
-    # 4. Processar dados meteorológicos (Lendo EXCEL em vez de CSV)
-    print("Processando dados meteorológicos...")
+    # 4. Processar dados meteorológicos
     df = pd.read_excel(excel_file)
     
     # Separação das coordenadas (Latitude e Longitude)
@@ -112,13 +109,28 @@ def gerar_mapa_html():
     '''
     mapa.get_root().html.add_child(folium.Element(legenda_html))
 
-    print(f"Gerando o arquivo final: {output_html}")
     mapa.save(output_html)
     
     # Limpeza do ficheiro KML temporário
     if os.path.exists(kml_extracted):
         os.remove(kml_extracted)
-        print("Arquivo temporário KML removido.")
 
 if __name__ == "__main__":
-    gerar_mapa_html()
+    # Configura a página para usar a largura total (opcional, mas fica melhor para mapas)
+    st.set_page_config(layout="wide", page_title="Mapa de Severidade RJ")
+    
+    st.title("Mapa de Severidade Meteorológica - RJ")
+    
+    # Mostra um indicador visual enquanto o mapa é gerado nos bastidores
+    with st.spinner("Processando dados e gerando o mapa..."):
+        gerar_mapa_html()
+    
+    # Caminho onde o arquivo HTML foi salvo
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    output_html = os.path.join(current_dir, "mapa_severidade_rj.html")
+    
+    # Lê o HTML e renderiza na tela
+    with open(output_html, "r", encoding="utf-8") as f:
+        mapa_html = f.read()
+        
+    components.html(mapa_html, height=700)
