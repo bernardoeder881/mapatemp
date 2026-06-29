@@ -7,3 +7,8 @@ pandas
 geopandas
 fiona
 folium
+pandas
+geopandas
+folium
+fiona
+openpyxl
