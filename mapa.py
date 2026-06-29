@@ -5,6 +5,19 @@ import geopandas as gpd
 import folium
 import fiona
 
+def gerar_mapa_html():
+    # Gets the directory where mapa.py is located
+    current_dir = os.path.dirname(os.path.abspath(cidade.csv))
+    
+    # Joins that directory with your file name
+    csv_file = os.path.join(current_dir, "your_data.csv") 
+    
+    # Add a quick debug print to verify the path in your server logs
+    print(f"Looking for CSV at: {csv_file}")
+    
+    # Now read it
+    df = pd.read_csv(csv_file)
+
 # Habilitar o suporte de leitura e escrita para KML no fiona
 fiona.drvsupport.supported_drivers['KML'] = 'rw'
 
