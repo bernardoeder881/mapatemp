@@ -5,49 +5,48 @@ import geopandas as gpd
 import folium
 import fiona
 
-def gerar_mapa_html():
-    # Gets the directory where mapa.py is located
-    current_dir = os.path.dirname(os.path.abspath(cidade.csv))
-    
-    # Joins that directory with your file name
-    csv_file = os.path.join(current_dir, "your_data.csv") 
-    
-    # Add a quick debug print to verify the path in your server logs
-    print(f"Looking for CSV at: {csv_file}")
-    
-    # Now read it
-    df = pd.read_csv(csv_file)
-
-# Habilitar o suporte de leitura e escrita para KML no fiona
+# Habilitar o suporte de leitura e escrita para KML/KMZ no fiona
 fiona.drvsupport.supported_drivers['KML'] = 'rw'
+fiona.drvsupport.supported_drivers['LIBKML'] = 'rw'
 
 def gerar_mapa_html():
-    csv_file = 'dados.csv'
-    kmz_file = 'cidades.kmz'
-    output_html = 'mapa_severidade_rj.html'
+    # 1. Resolver caminhos absolutos (ótimo para evitar erros na nuvem)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Nomes reais dos seus arquivos
+    excel_file = os.path.join(current_dir, "Temp Máx e Umi Mín.xlsx")
+    kmz_file = os.path.join(current_dir, "cidades.kmz")
+    output_html = os.path.join(current_dir, "mapa_severidade_rj.html")
 
+    print(f"Buscando Excel em: {excel_file}")
+    
+    # 2. Extração do KMZ
     print("Extraindo KML do KMZ...")
-    kml_extracted = 'doc.kml'
+    kml_extracted = os.path.join(current_dir, 'doc.kml')
     with zipfile.ZipFile(kmz_file, 'r') as zip_ref:
         kml_files = [f for f in zip_ref.namelist() if f.endswith('.kml')]
         if kml_files:
-            zip_ref.extract(kml_files[0], path='.')
-            os.rename(kml_files[0], kml_extracted)
+            zip_ref.extract(kml_files[0], path=current_dir)
+            # Renomeia para um nome padrão temporário
+            os.rename(os.path.join(current_dir, kml_files[0]), kml_extracted)
         else:
-            raise FileNotFoundError("Ficheiro KML não encontrado no KMZ.")
+            raise FileNotFoundError("Arquivo KML não encontrado dentro do KMZ.")
 
+    # 3. Carregar limites municipais
     print("Carregando limites municipais...")
     gdf_municipios = gpd.read_file(kml_extracted, driver='KML')
 
+    # 4. Processar dados meteorológicos (Lendo EXCEL em vez de CSV)
     print("Processando dados meteorológicos...")
-    df = pd.read_csv(csv_file)
+    df = pd.read_excel(excel_file)
+    
     # Separação das coordenadas (Latitude e Longitude)
     df[['Latitude', 'Longitude']] = df['Coordenadas'].str.replace('"', '').str.split(',', expand=True).astype(float)
 
-    # Criação do Mapa Base centralizado no Rio de Janeiro
+    # 5. Criação do Mapa Base
     mapa = folium.Map(location=[-22.25, -42.50], zoom_start=8, tiles='cartodbpositron')
 
-    # Adicionar a malha dos municípios (KML convertido) ao mapa
+    # Adicionar a malha dos municípios
     folium.GeoJson(
         gdf_municipios,
         name="Limites Municipais",
@@ -74,7 +73,7 @@ def gerar_mapa_html():
         nivel = str(row['Nível de Severidade Meteorológica']).strip()
         cor = cores.get(nivel, '#34495E') # Cor padrão caso não encontre
         
-        # Estrutura do pop-up ao clicar na estação
+        # Estrutura do pop-up
         popup_html = f"""
         <div style="font-family: Arial; min-width: 150px;">
             <h4 style="margin-top: 0; color: #2C3E50;">{row['Estação']}</h4>
@@ -88,7 +87,7 @@ def gerar_mapa_html():
             location=[row['Latitude'], row['Longitude']],
             radius=8,
             popup=folium.Popup(popup_html, max_width=300),
-            tooltip=row['Estação'], # Nome aparece ao passar o mouse
+            tooltip=row['Estação'],
             color='black',
             weight=1,
             fill=True,
@@ -119,6 +118,7 @@ def gerar_mapa_html():
     # Limpeza do ficheiro KML temporário
     if os.path.exists(kml_extracted):
         os.remove(kml_extracted)
+        print("Arquivo temporário KML removido.")
 
 if __name__ == "__main__":
     gerar_mapa_html()
